@@ -35,16 +35,24 @@ async function appendToSheet(sheetId, range, row) {
 }
 
 async function appendAppointment(sheetId, appt) {
-  await appendToSheet(sheetId, "Appointments!A:H", [
-    appt.clinic_name,
-    appt.patient_name,
-    appt.dob || "",
-    appt.phone,
-    appt.reason,
-    appt.date,
-    appt.time,
-    new Date().toISOString(),
-  ]);
+    console.log("Range:", "Appointments!A:H");
+
+    const row = [
+        appt.clinic_name,
+        appt.patient_name,
+        appt.dob || "",
+        appt.phone,
+        appt.reason,
+        appt.date,
+        appt.time,
+        new Date().toISOString(),
+    ];
+
+  
+
+    await appendToSheet(sheetId, "Appointments!A:H", row);
+
+    console.log("Done");
 }
 
 async function appendIntake(sheetId, intake) {
