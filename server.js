@@ -22,55 +22,130 @@ app.use(express.static(path.join(__dirname, "public")));
 // We respond: { results: [{ toolCallId, result }] }
 // ============================================================
 app.post("/webhook", async (req, res) => {
-  console.log("========== WEBHOOK ==========");
-console.log(JSON.stringify(req.body, null, 2));
-console.log("=============================");
   try {
-    const { assistantId, toolCalls = [] } = req.body?.message || {};
+    console.log("========== WEBHOOK ==========");
+    console.log(JSON.stringify(req.body, null, 2));
+    console.log("=============================");
 
-    // Identify which clinic this call is for
+    const message = req.body?.message || {};
+
+    // Handle both VAPI payload styles
+    const messages = message.messages || [];
+
+    // Assistant ID
+    let assistantId =
+      message.assistantId ||
+      req.body.assistantId ||
+      req.body.assistant?.id ||
+      null;
+
+    if (!assistantId && messages.length) {
+      const bot = messages.find((m) => m.assistantId);
+      assistantId = bot?.assistantId || null;
+    }
+
+    // Tool calls
+    let toolCalls = message.toolCalls || [];
+
+    if (!toolCalls.length && messages.length) {
+      const toolMessage = [...messages]
+        .reverse()
+        .find((m) => m.role === "tool_calls");
+
+      toolCalls = toolMessage?.toolCalls || [];
+    }
+
     const clinic = getClinic(assistantId);
-    console.log(`[Webhook] Assistant: ${assistantId} → Clinic: ${clinic.name}`);
+
+    console.log("Assistant ID:", assistantId);
+    console.log("Clinic:", clinic.name);
+    console.log("Tool Calls:", toolCalls.length);
+
+    if (!toolCalls.length) {
+      return res.json({ results: [] });
+    }
 
     const results = [];
 
     for (const call of toolCalls) {
+
       const { id, function: fn } = call;
-      const args = fn.arguments || {};
+
+      let args = {};
+
+      try {
+        args =
+          typeof fn.arguments === "string"
+            ? JSON.parse(fn.arguments)
+            : fn.arguments || {};
+      } catch (err) {
+        console.error("Arguments parse error:", err);
+      }
+
       let result;
 
       try {
+
         switch (fn.name) {
+
           case "check_availability":
             result = checkAvailability(args, clinic);
             break;
+
           case "book_appointment":
             result = await bookAppointment(args, clinic);
             break;
-          case "transfer_call":
-            result = { action: "transfer", message: "Transferring you to the front desk now. Please hold." };
-            break;
+
           case "record_intake":
             result = await recordIntake(args, clinic);
             break;
+
           case "triage_symptoms":
             result = triageSymptoms(args);
             break;
+
+          case "transfer_call":
+            result = {
+              action: "transfer",
+              message:
+                "Transferring you to the front desk now. Please hold."
+            };
+            break;
+
           default:
-            result = { error: `Unknown function: ${fn.name}` };
+            result = {
+              error: `Unknown function ${fn.name}`
+            };
+
         }
-      } catch (fnErr) {
-        console.error(`Error in ${fn.name}:`, fnErr.message);
-        result = { error: `Failed to execute ${fn.name}` };
+
+      } catch (err) {
+
+        console.error(err);
+
+        result = {
+          error: err.message
+        };
+
       }
 
-      results.push({ toolCallId: id, result: JSON.stringify(result) });
+      results.push({
+        toolCallId: id,
+        result: JSON.stringify(result)
+      });
+
     }
 
-    res.json({ results });
+    return res.json({ results });
+
   } catch (err) {
+
     console.error("Webhook error:", err);
-    res.status(500).json({ error: "Internal server error" });
+
+    return res.status(500).json({
+      error: err.message
+    });
+
   }
 });
 
