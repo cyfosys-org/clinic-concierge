@@ -22,6 +22,9 @@ app.use(express.static(path.join(__dirname, "public")));
 // We respond: { results: [{ toolCallId, result }] }
 // ============================================================
 app.post("/webhook", async (req, res) => {
+  console.log("========== WEBHOOK ==========");
+console.log(JSON.stringify(req.body, null, 2));
+console.log("=============================");
   try {
     const { assistantId, toolCalls = [] } = req.body?.message || {};
 
