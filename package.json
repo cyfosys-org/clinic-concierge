@@ -1,0 +1,15 @@
+{
+  "name": "clinic-concierge",
+  "version": "1.0.0",
+  "description": "CyfoSys Clinic Concierge — AI voice receptionist backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "googleapis": "^140.0.1",
+    "xlsx": "^0.18.5"
+  }
+}
