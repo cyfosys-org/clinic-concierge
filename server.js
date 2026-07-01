@@ -228,3 +228,39 @@ app.post("/send-whatsapp", async (req, res) => {
 // ============================================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Clinic Concierge webhook running on port ${PORT}`));
+
+
+
+
+
+
+
+
+
+
+
+app.get("/test-booking", async (req, res) => {
+  const clinic = getClinic(process.env.JANISE_ASSISTANT_ID);
+
+  const intake = await recordIntake({
+    patient_name: "Keerthan",
+    phone: "9381997569",
+    symptoms: "Toothache",
+    current_medications: "None",
+    insurance_provider: "Self-pay"
+  }, clinic);
+
+  const booking = await bookAppointment({
+    patient_name: "Keerthan",
+    dob: "2006-04-04",
+    phone: "9381997569",
+    reason: "Toothache",
+    date: "2026-07-10",
+    time: "15:00"
+  }, clinic);
+
+  res.json({
+    intake,
+    booking
+  });
+});
